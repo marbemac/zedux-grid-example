@@ -31,10 +31,9 @@ import {
   objectIdFromInstance,
   renderedCursorAtom,
 } from "./atoms";
+import { isRecordActive } from "~/atoms/records";
 
 export const DataTable = ({ objectId }: { objectId: string }) => {
-  console.log("DataTable.render");
-
   const objectInstance = useAtomInstance(objectFetcherAtom, [{ objectId }]);
   const dtInstance = useAtomInstance(dataTableAtom, [{ objectId }]);
 
@@ -238,7 +237,12 @@ const DTCell = ({
     }
   }, [rowId, rowIndex]);
 
-  const className = "flex items-center border-b border-r px-2 gap-1 z-0";
+  const isActive = useAtomSelector(isRecordActive, { recordId: rowId });
+
+  const className = twJoin(
+    "flex items-center border-b border-r px-2 gap-1 z-0",
+    isActive && "bg-blue-600"
+  );
 
   if (columnIndex === 0) {
     return (

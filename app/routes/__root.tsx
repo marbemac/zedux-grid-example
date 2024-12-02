@@ -50,7 +50,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html className="dark">
       <head>
         <Meta />
       </head>
@@ -59,17 +59,29 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <div className="flex min-h-screen">
             <div className="w-48 shrink-0 border-r flex flex-col gap-3 p-5">
               <div>
-                <Link to="/objects/$objectId" params={{ objectId: "object-1" }}>
+                <Link
+                  to="/objects/$objectId"
+                  params={{ objectId: "object-1" }}
+                  className="data-[status=active]:underline"
+                >
                   Object 1
                 </Link>
               </div>
               <div>
-                <Link to="/objects/$objectId" params={{ objectId: "object-2" }}>
+                <Link
+                  to="/objects/$objectId"
+                  params={{ objectId: "object-2" }}
+                  className="data-[status=active]:underline"
+                >
                   Object 2
                 </Link>
               </div>
               <div>
-                <Link to="/objects/$objectId" params={{ objectId: "object-3" }}>
+                <Link
+                  to="/objects/$objectId"
+                  params={{ objectId: "object-3" }}
+                  className="data-[status=active]:underline"
+                >
                   Object 3
                 </Link>
               </div>

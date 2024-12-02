@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAtomSelector, useAtomValue } from "@zedux/react";
+import { useAtomInstance, useAtomSelector, useAtomValue } from "@zedux/react";
+import { useEffect } from "react";
+
 import { getObjectColumns } from "~/atoms/objects";
-import { recordAttributeAtom } from "~/atoms/records";
+import { activeRecordIdAtom, recordAttributeAtom } from "~/atoms/records";
 import type { ColumnId, RecordId } from "~/utils/api";
 
 export const Route = createFileRoute("/objects/$objectId/$recordId")({
@@ -10,6 +12,15 @@ export const Route = createFileRoute("/objects/$objectId/$recordId")({
 
 function ObjectRecordComponent() {
   const { objectId, recordId } = Route.useParams();
+
+  const activeRecordId = useAtomInstance(activeRecordIdAtom);
+  useEffect(() => {
+    activeRecordId.setState(recordId);
+
+    return () => {
+      activeRecordId.setState(null);
+    };
+  }, [recordId]);
 
   return (
     <div className="border-l p-5 w-80 overflow-auto">

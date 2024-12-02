@@ -6,6 +6,7 @@ import {
   injectStore,
   injectCallback,
   injectAtomGetters,
+  type AtomGetters,
 } from "@zedux/react";
 
 import { fetchRecordsData, type ColumnId, type RecordId } from "~/utils/api";
@@ -134,6 +135,16 @@ export const recordsAtom = atom(
     });
   }
 );
+
+export const activeRecordIdAtom = atom<RecordId | null>(
+  "active-record-id",
+  null
+);
+
+export const isRecordActive = (
+  { get }: AtomGetters,
+  { recordId }: { recordId: RecordId }
+) => get(activeRecordIdAtom) === recordId && Boolean(recordId);
 
 export const recordAttributeAtom = atom(
   "record-attribute",
