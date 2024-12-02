@@ -12,8 +12,10 @@ import {
   type GridChildComponentProps,
   VariableSizeGrid as Grid,
 } from "react-window";
+import { twJoin } from "tailwind-merge";
 
 import {
+  getObjectColumnAtIndex,
   getObjectColumns,
   objectColumnsFromInstance,
   objectFetcherAtom,
@@ -21,9 +23,13 @@ import {
 import {
   dataTableAtom,
   dataTableCellAtom,
+  getRenderedMaxRow,
+  getRenderedMinRow,
   getRowIdAtIndex,
   getRowIdsPopulated,
   getTotalRowCount,
+  objectIdFromInstance,
+  renderedCursorAtom,
 } from "./atoms";
 
 export const DataTable = ({ objectId }: { objectId: string }) => {
@@ -73,12 +79,21 @@ export const DataTable = ({ objectId }: { objectId: string }) => {
 // eslint-disable-next-line react/display-name
 const GridInner = forwardRef(
   (
-    { children, ...rest }: { children: React.ReactNode },
+    {
+      children,
+      ...rest
+    }: { children: React.ReactElement<GridChildComponentProps>[] },
     ref: React.Ref<HTMLDivElement>
   ) => {
+    const renderedCursor = useAtomInstance(renderedCursorAtom);
+
+    renderedCursor.exports.updateFromChildren(children);
+
     return (
       <div ref={ref} {...rest}>
         <DTHeaders />
+
+        <DTPinnedColumn />
 
         {children}
       </div>
@@ -99,9 +114,13 @@ const DTHeaders = () => {
   // const columns = useAtomSelector(objectColumns, objectFetcher);
   const columns = useAtomSelector(objectColumnsFromInstance, objectFetcher);
 
+  const [firstColumn, ...restColumns] = columns;
+
   return (
-    <div className="sticky top-0 z-10 flex min-w-max border-b bg-black">
-      {columns.map((c) => (
+    <div className="sticky top-0 z-20 min-w-max flex">
+      <DTHeaderCell column={firstColumn} key={firstColumn.id} sticky />
+
+      {restColumns.map((c) => (
         <DTHeaderCell column={c} key={c.id} />
       ))}
     </div>
@@ -110,12 +129,18 @@ const DTHeaders = () => {
 
 const DTHeaderCell = ({
   column,
+  sticky,
 }: {
   column: { id: string; name: string; width: number };
+  sticky?: boolean;
 }) => {
   return (
     <div
-      className="flex h-8 items-center border-r px-2"
+      className={twJoin(
+        "flex h-8 items-center border-r px-2 border-b bg-black",
+        sticky && "sticky left-0 z-10",
+        !sticky && "z-0"
+      )}
       style={{ width: column.width }}
       title={column.id}
     >
@@ -124,16 +149,64 @@ const DTHeaderCell = ({
   );
 };
 
-const DTCellWrapper = memo(({ rowIndex, ...rest }: GridChildComponentProps) => {
-  if (rowIndex === 0) {
-    // Row 0 is reserved for the headers row
-    return null;
+const DTPinnedColumn = () => {
+  const dtInstance = useAtomContext(dataTableAtom, true);
+  const objectId = useAtomSelector(objectIdFromInstance, dtInstance);
+  const minRow = useAtomSelector(getRenderedMinRow);
+  const maxRow = useAtomSelector(getRenderedMaxRow);
+  const column = useAtomSelector(getObjectColumnAtIndex, {
+    objectId,
+    index: 0,
+  });
+
+  const height = 32;
+  const width = column?.width || 100;
+
+  const elems = [];
+
+  // < rather than <= because we need to render 1 less to account for the sticky headers row
+  for (let i = minRow; i < maxRow; i++) {
+    elems.push(
+      <DTCell
+        key={i}
+        rowIndex={i}
+        columnIndex={0}
+        style={{ position: "absolute", height, width, top: i * height }}
+        data={{ objectId }}
+      />
+    );
   }
 
-  const normalizedRowIndex = rowIndex - 1; // -1 for the DTHeaders row
+  return (
+    <div
+      className="sticky left-0 bg-gray-900 z-10"
+      style={{ width, height: `calc(100% - ${height}px)` }}
+    >
+      {elems}
+    </div>
+  );
+};
 
-  return <DTCell rowIndex={normalizedRowIndex} {...rest} />;
-});
+const DTCellWrapper = memo(
+  ({ rowIndex, columnIndex, ...rest }: GridChildComponentProps) => {
+    if (
+      rowIndex === 0 || // Row 0 is reserved for the sticky headers row
+      columnIndex === 0 // Column 0 is reserved for the sticky column
+    ) {
+      return null;
+    }
+
+    const normalizedRowIndex = rowIndex - 1; // -1 for the DTHeaders row
+
+    return (
+      <DTCell
+        rowIndex={normalizedRowIndex}
+        columnIndex={columnIndex}
+        {...rest}
+      />
+    );
+  }
+);
 
 const DTCell = ({
   rowIndex,
@@ -165,14 +238,24 @@ const DTCell = ({
     }
   }, [rowId, rowIndex]);
 
-  // const position = columnIndex === 0 ? "sticky" : "absolute";
+  const className = "flex items-center border-b border-r px-2 gap-1 z-0";
+
+  if (columnIndex === 0) {
+    return (
+      <Link
+        className={className}
+        to="/objects/$objectId/$recordId"
+        params={{ objectId, recordId: rowId }}
+        style={style}
+      >
+        {content}
+        <div>{"->"}</div>
+      </Link>
+    );
+  }
 
   return (
-    <div
-      className="flex items-center border-b border-r px-2 gap-1"
-      // style={{ ...style, position }}
-      style={style}
-    >
+    <div className={className} style={style}>
       {content}
     </div>
   );
@@ -191,18 +274,5 @@ const DTCellContent = ({
     { objectId, rowId, columnIndex },
   ]);
 
-  return (
-    <>
-      <div className="flex-1 truncate">{cell.attribute || "..."}</div>
-
-      {cell.attribute && columnIndex === 0 ? (
-        <Link
-          to="/objects/$objectId/$recordId"
-          params={{ objectId, recordId: rowId }}
-        >
-          {"->"}
-        </Link>
-      ) : null}
-    </>
-  );
+  return <div className="flex-1 truncate">{cell.attribute || "..."}</div>;
 };

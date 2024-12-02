@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/start";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const SIMULATED_LATENCY = 500;
+const SIMULATED_LATENCY = 250;
 const ROW_COUNT = 10000;
 const COLUMN_COUNT = 30;
 
