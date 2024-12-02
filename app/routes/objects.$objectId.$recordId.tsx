@@ -87,9 +87,16 @@ const RecordPanelAttribute = ({
   ]);
 
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1 items-center">
       <div className="font-semibold">{columnId}:</div>
-      <div>{recordAttribute ? String(recordAttribute) : "..."}</div>
+
+      <div className="flex-1">
+        {recordAttribute.value ? String(recordAttribute.value) : "..."}
+      </div>
+
+      {recordAttribute.value ? (
+        <div className="text-xs opacity-50">v{recordAttribute.version}</div>
+      ) : null}
     </div>
   );
 };

@@ -33,6 +33,9 @@ import {
 } from "./atoms";
 import { isRecordActive } from "~/atoms/records";
 
+const HEADER_HEIGHT = 40;
+const ROW_HEIGHT = 36;
+
 export const DataTable = ({ objectId }: { objectId: string }) => {
   const objectInstance = useAtomInstance(objectFetcherAtom, [{ objectId }]);
   const dtInstance = useAtomInstance(dataTableAtom, [{ objectId }]);
@@ -60,8 +63,8 @@ export const DataTable = ({ objectId }: { objectId: string }) => {
             overscanColumnCount={1}
             height={height}
             rowCount={totalRowCount + 1} // +1 for the DTHeaders row
-            rowHeight={() => 32}
-            estimatedRowHeight={32}
+            rowHeight={(index) => (index === 0 ? HEADER_HEIGHT : ROW_HEIGHT)}
+            estimatedRowHeight={ROW_HEIGHT}
             overscanRowCount={10}
             width={width}
             innerElementType={GridInner}
@@ -75,7 +78,6 @@ export const DataTable = ({ objectId }: { objectId: string }) => {
   );
 };
 
-// eslint-disable-next-line react/display-name
 const GridInner = forwardRef(
   (
     {
@@ -136,11 +138,11 @@ const DTHeaderCell = ({
   return (
     <div
       className={twJoin(
-        "flex h-8 items-center border-r px-2 border-b bg-black",
+        "flex items-center border-r px-2 border-b bg-black",
         sticky && "sticky left-0 z-10",
         !sticky && "z-0"
       )}
-      style={{ width: column.width }}
+      style={{ width: column.width, height: HEADER_HEIGHT }}
       title={column.id}
     >
       <div className="truncate font-semibold">{column.id}</div>
@@ -158,7 +160,6 @@ const DTPinnedColumn = () => {
     index: 0,
   });
 
-  const height = 32;
   const width = column?.width || 100;
 
   const elems = [];
@@ -170,7 +171,12 @@ const DTPinnedColumn = () => {
         key={i}
         rowIndex={i}
         columnIndex={0}
-        style={{ position: "absolute", height, width, top: i * height }}
+        style={{
+          position: "absolute",
+          height: ROW_HEIGHT,
+          width,
+          top: i * ROW_HEIGHT,
+        }}
         data={{ objectId }}
       />
     );
@@ -179,7 +185,7 @@ const DTPinnedColumn = () => {
   return (
     <div
       className="sticky left-0 bg-gray-900 z-10"
-      style={{ width, height: `calc(100% - ${height}px)` }}
+      style={{ width, height: `calc(100% - ${HEADER_HEIGHT}px)` }}
     >
       {elems}
     </div>
@@ -278,5 +284,14 @@ const DTCellContent = ({
     { objectId, rowId, columnIndex },
   ]);
 
-  return <div className="flex-1 truncate">{cell.attribute || "..."}</div>;
+  if (!cell.attribute.value) {
+    return "...";
+  }
+
+  return (
+    <>
+      <div className="flex-1 truncate">{cell.attribute.value}</div>
+      <div className="text-xs opacity-50">v{cell.attribute.version}</div>
+    </>
+  );
 };

@@ -12,6 +12,7 @@ import {
 import { fetchRecordsData, type ColumnId, type RecordId } from "~/utils/api";
 
 const FETCH_DATA_DELAY = 500;
+const STALE_DATA_THRESHOLD = 5_000;
 
 export const recordsAtom = atom(
   "records",
@@ -72,12 +73,12 @@ export const recordsAtom = atom(
       for (const recordId in recordsData) {
         for (const columnId in recordsData[recordId]) {
           /**
-           * @QUESTION Is this getInstance().setState() approach correct? Should runPendingDataFetch
-           * use injectCallback for the batch update functionality?
+           * @QUESTION Should runPendingDataFetch use injectCallback for the
+           * batch update functionality?
            */
           getInstance(recordAttributeAtom, [
             { objectId, recordId, columnId },
-          ]).setState(recordsData[recordId]![columnId]);
+          ]).exports.setValue(recordsData[recordId]![columnId]);
         }
       }
 
@@ -157,14 +158,25 @@ export const recordAttributeAtom = atom(
     recordId: string;
     columnId: string;
   }) => {
-    const store = injectStore<string>();
+    const store = injectStore({
+      value: undefined as string | undefined,
+      version: 0, // Tracking this just to show in the UI when a record attribute is re-fetched, for example purposes
+      populatedAt: null as number | null,
+    });
 
     const records = injectAtomInstance(recordsAtom, [{ objectId }]);
 
     const populate = injectCallback(
       (force = false) => {
-        const value = store.getState();
-        if (!force && value !== undefined) {
+        const { value, version, populatedAt } = store.getState();
+
+        /**
+         * Consider the value stale if it was populated more than X seconds ago, and refetch it.
+         */
+        const isStale =
+          populatedAt && Date.now() - STALE_DATA_THRESHOLD > populatedAt;
+
+        if (!force && value !== undefined && !isStale) {
           return;
         }
 
@@ -177,6 +189,14 @@ export const recordAttributeAtom = atom(
       records.exports.cancelPopulateAttribute(recordId, columnId);
     }, [records]);
 
+    const setValue = injectCallback((value: string) => {
+      store.setState((s) => ({
+        value,
+        populatedAt: new Date().getTime(),
+        version: s.version + 1,
+      }));
+    }, []);
+
     injectEffect(() => {
       // Populate this record attribute on mount
       populate();
@@ -188,6 +208,14 @@ export const recordAttributeAtom = atom(
       };
     }, []);
 
-    return api(store).setExports({ populate, cancelPopulate });
+    /**
+     * @QUESTION is there a way to prevent consumers from setting the state directly? Forcing them to use
+     * setValue basically.
+     */
+    return api(store).setExports({
+      populate,
+      cancelPopulate,
+      setValue,
+    });
   }
 );

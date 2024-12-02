@@ -16,7 +16,7 @@ const objectDefinitions = Array.from({ length: 3 }, (_, i) => ({
   columns: Array.from({ length: COLUMN_COUNT }, (_, i) => ({
     id: `c${i + 1}`,
     name: `Column ${i + 1}`,
-    width: 120,
+    width: 140,
   })),
 }));
 
@@ -60,7 +60,7 @@ export const fetchRecordsData = createServerFn({ method: "GET" })
       records[recordId] = {};
 
       for (const columnId of data.columnIds) {
-        records[recordId][columnId] = `${recordId}-${columnId}`;
+        records[recordId][columnId] = `${recordId}, ${columnId}`;
       }
     }
 
