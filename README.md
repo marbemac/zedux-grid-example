@@ -15,7 +15,7 @@ Running it:
 <details>
   <summary>Example GIF</summary>
 
-![example](https://i.imgur.com/0Nb8hAv.gif)
+![2024-12-02 18 49 14](https://github.com/user-attachments/assets/394179f4-7dcc-441c-b39b-dcbb4a6b5894)
 
 </details>
 
