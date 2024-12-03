@@ -3,7 +3,7 @@
 A more advanced Zedux example.
 
 - Virtualized table (grid) that loads rendered rows + columns on demand
-- Tracks the stale time of each cell independently
+- Tracks the stale time of each cell independently, and re-fetches the data for a cell on render if it is stale (the "v1, v2, etc" in the UI shows how many times a cell has been fetched)
 - Re-uses the fetched data when rendering outside the table (for example, on a "details" panel)
 
 Running it:
