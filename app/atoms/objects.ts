@@ -32,7 +32,7 @@ export const objectColumnsFromInstance = (
   _: AtomGetters,
   instance: AtomInstanceType<typeof objectFetcherAtom>
   /**
-   * @QUESTION Better way to do this? Kind of awkward to have selectors (this one vs getObjectColumnAtIndex)
-   * with mildy different implementations.
+   * @QUESTION Better way to do this? Kind of awkward to have selectors with mildy different
+   * implementations (this one vs getObjectColumnAtIndex).
    */
 ) => instance.getState().data?.columns || [];
