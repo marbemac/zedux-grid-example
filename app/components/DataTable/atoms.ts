@@ -8,6 +8,7 @@ import {
   injectEffect,
   injectRef,
   injectStore,
+  type AnyAtomInstance,
   type AtomGetters,
   type AtomInstanceType,
 } from "@zedux/react";
@@ -16,13 +17,27 @@ import type { GridChildComponentProps } from "react-window";
 
 import { getObjectColumnAtIndex } from "~/atoms/objects";
 import { recordAttributeAtom } from "~/atoms/records";
-import { fetchRowIds } from "~/utils/api";
 
 const DEFAULT_POPULATE_IDS_ROW_LIMIT = 100;
 
+export type DataTableRowIdFetcher = AnyAtomInstance<{
+  Exports: {
+    fetchRowIds: (args: {
+      limit: number;
+      offset: number;
+    }) => Promise<{ rows: { id: string }[]; totalRowCount: number }>;
+  };
+}>;
+
 export const dataTableAtom = atom(
   "data-table",
-  ({ objectId }: { objectId: string }) => {
+  ({
+    objectId,
+    rowIdFetcher,
+  }: {
+    objectId: string;
+    rowIdFetcher: DataTableRowIdFetcher;
+  }) => {
     const store = injectStore({
       objectId,
       rowIdsPopulated: false,
@@ -39,42 +54,39 @@ export const dataTableAtom = atom(
      * Calls fetchRowIds with the offset + limit that corresponds to the "bucket" of rows that
      * the `fromRowIndex` falls into.
      */
-    const populateRowIds = injectCallback(
-      async (fromRowIndex = 0) => {
-        const offset =
-          Math.floor(fromRowIndex / DEFAULT_POPULATE_IDS_ROW_LIMIT) *
-          DEFAULT_POPULATE_IDS_ROW_LIMIT;
+    const populateRowIds = injectCallback(async (fromRowIndex = 0) => {
+      const offset =
+        Math.floor(fromRowIndex / DEFAULT_POPULATE_IDS_ROW_LIMIT) *
+        DEFAULT_POPULATE_IDS_ROW_LIMIT;
 
-        const alreadyPopulating =
-          rowIdBucketsBeingPopulated.current.has(offset);
-        if (alreadyPopulating) {
-          return;
+      const alreadyPopulating = rowIdBucketsBeingPopulated.current.has(offset);
+      if (alreadyPopulating) {
+        return;
+      }
+
+      rowIdBucketsBeingPopulated.current.add(offset);
+
+      const { rows, totalRowCount } = await rowIdFetcher.exports.fetchRowIds({
+        limit: DEFAULT_POPULATE_IDS_ROW_LIMIT,
+        offset,
+      });
+
+      store.setStateDeep((s) => {
+        const newRows = [...s.rows];
+        for (const rowIndex in rows) {
+          const ri = Number(rowIndex);
+          newRows[offset + ri] = rows[ri]!.id;
         }
 
-        rowIdBucketsBeingPopulated.current.add(offset);
+        return {
+          rowIdsPopulated: true,
+          totalRowCount,
+          rows: newRows,
+        };
+      });
 
-        const { rows, totalRowCount } = await fetchRowIds({
-          data: { objectId, limit: DEFAULT_POPULATE_IDS_ROW_LIMIT, offset },
-        });
-
-        store.setStateDeep((s) => {
-          const newRows = [...s.rows];
-          for (const rowIndex in rows) {
-            const ri = Number(rowIndex);
-            newRows[offset + ri] = rows[ri]!.id;
-          }
-
-          return {
-            rowIdsPopulated: true,
-            totalRowCount,
-            rows: newRows,
-          };
-        });
-
-        rowIdBucketsBeingPopulated.current.delete(offset);
-      },
-      [objectId]
-    );
+      rowIdBucketsBeingPopulated.current.delete(offset);
+    }, []);
 
     injectEffect(() => {
       // Populate first bucket of rows when the atom is created
@@ -86,24 +98,27 @@ export const dataTableAtom = atom(
 );
 
 export const objectIdFromInstance = (
-  _: AtomGetters,
+  { get }: AtomGetters,
   instance: AtomInstanceType<typeof dataTableAtom>
-) => instance.getState().objectId;
+) => get(instance).objectId;
 
 export const getRowIdAtIndex = (
   { get }: AtomGetters,
-  { objectId, index }: { objectId: string; index: number }
-) => get(dataTableAtom, [{ objectId }]).rows[index];
+  {
+    instance,
+    index,
+  }: { instance: AtomInstanceType<typeof dataTableAtom>; index: number }
+) => get(instance).rows[index];
 
 export const getTotalRowCount = (
   { get }: AtomGetters,
-  { objectId }: { objectId: string }
-) => get(dataTableAtom, [{ objectId }]).totalRowCount;
+  instance: AtomInstanceType<typeof dataTableAtom>
+) => get(instance).totalRowCount;
 
 export const getRowIdsPopulated = (
   { get }: AtomGetters,
-  { objectId }: { objectId: string }
-) => get(dataTableAtom, [{ objectId }]).rowIdsPopulated;
+  instance: AtomInstanceType<typeof dataTableAtom>
+) => get(instance).rowIdsPopulated;
 
 /**
  * @QUESTION how to think about organizing atom "scope/size"? For example, this could go into the dataTableAtom.

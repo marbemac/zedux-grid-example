@@ -30,19 +30,28 @@ import {
   getTotalRowCount,
   objectIdFromInstance,
   renderedCursorAtom,
+  type DataTableRowIdFetcher,
 } from "./atoms";
 import { isRecordActive } from "~/atoms/records";
 
 const HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 36;
 
-export const DataTable = ({ objectId }: { objectId: string }) => {
+export const DataTable = ({
+  objectId,
+  rowIdFetcher,
+}: {
+  objectId: string;
+  rowIdFetcher: DataTableRowIdFetcher;
+}) => {
   const objectInstance = useAtomInstance(objectFetcherAtom, [{ objectId }]);
-  const dtInstance = useAtomInstance(dataTableAtom, [{ objectId }]);
+  const dtInstance = useAtomInstance(dataTableAtom, [
+    { objectId, rowIdFetcher },
+  ]);
 
   const columns = useAtomSelector(getObjectColumns, { objectId });
-  const totalRowCount = useAtomSelector(getTotalRowCount, { objectId });
-  const rowIdsPopulated = useAtomSelector(getRowIdsPopulated, { objectId });
+  const totalRowCount = useAtomSelector(getTotalRowCount, dtInstance);
+  const rowIdsPopulated = useAtomSelector(getRowIdsPopulated, dtInstance);
 
   if (!rowIdsPopulated) {
     return <div className="p-5">Loading row ids...</div>;
@@ -219,12 +228,23 @@ const DTCell = ({
   style,
   data: { objectId },
 }: GridChildComponentProps) => {
-  const dt = useAtomInstance(dataTableAtom, [{ objectId }]);
+  const dtInstance = useAtomContext(dataTableAtom, true);
 
   const rowId = useAtomSelector(getRowIdAtIndex, {
-    objectId,
+    instance: dtInstance,
     index: rowIndex,
   });
+
+  /**
+   * If we haven't loaded the rowIds for this bucket of rows yet, populate them.
+   *
+   * @QUESTION would be nice to get this useEffect out of the component, but not sure how. Not end of the world though.
+   */
+  useEffect(() => {
+    if (!rowId) {
+      dtInstance.exports.populateRowIds(rowIndex);
+    }
+  }, [rowId, rowIndex]);
 
   const content = rowId ? (
     <DTCellContent
@@ -235,13 +255,6 @@ const DTCell = ({
   ) : (
     "..."
   );
-
-  /** If we haven't loaded the rowIds for this bucket of rows yet, populate them */
-  useEffect(() => {
-    if (!rowId) {
-      dt.exports.populateRowIds(rowIndex);
-    }
-  }, [rowId, rowIndex]);
 
   const isActive = useAtomSelector(isRecordActive, { recordId: rowId });
 

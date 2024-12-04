@@ -28,7 +28,7 @@ export const fetchObjectDefinition = createServerFn({ method: "GET" })
     return objectDefinitions.find((o) => o.id === data);
   });
 
-export const fetchRowIds = createServerFn({ method: "GET" })
+export const fetchRecordIds = createServerFn({ method: "GET" })
   .validator(
     (props: { objectId: ObjectId; offset: number; limit: number }) => props
   )

@@ -9,7 +9,12 @@ import {
   type AtomGetters,
 } from "@zedux/react";
 
-import { fetchRecordsData, type ColumnId, type RecordId } from "~/utils/api";
+import {
+  fetchRecordsData,
+  type ColumnId,
+  type RecordId,
+  fetchRecordIds,
+} from "~/utils/api";
 
 const FETCH_DATA_DELAY = 500;
 const STALE_DATA_THRESHOLD = 5_000;
@@ -217,5 +222,21 @@ export const recordAttributeAtom = atom(
       cancelPopulate,
       setValue,
     });
+  }
+);
+
+export const recordIdFetcherAtom = atom(
+  "record-id-fetcher",
+  ({ objectId }: { objectId: string }) => {
+    const fetchRowIds = injectCallback(
+      ({ limit, offset }: { limit: number; offset: number }) => {
+        return fetchRecordIds({
+          data: { objectId, limit, offset },
+        });
+      },
+      []
+    );
+
+    return api().setExports({ fetchRowIds });
   }
 );
