@@ -96,8 +96,8 @@ export const recordsAtom = atom(
       queuePopulateRecordData();
     }
 
-    const populateAttribute = injectCallback(
-      async (rowId: RecordId, columnId: ColumnId) => {
+    return api(store).setExports({
+      populateAttribute: async (rowId: RecordId, columnId: ColumnId) => {
         const { pendingCellsToFetch } = store.getState();
         if (pendingCellsToFetch[rowId]?.[columnId]) {
           return;
@@ -113,11 +113,8 @@ export const recordsAtom = atom(
 
         queuePopulateRecordData();
       },
-      [objectId]
-    );
 
-    const cancelPopulateAttribute = injectCallback(
-      async (rowId: RecordId, columnId: ColumnId) => {
+      cancelPopulateAttribute: async (rowId: RecordId, columnId: ColumnId) => {
         store.setState((s) => {
           const newPendingCells = { ...s.pendingCellsToFetch };
 
@@ -132,12 +129,6 @@ export const recordsAtom = atom(
           return { ...s, pendingCellsToFetch: newPendingCells };
         });
       },
-      [objectId]
-    );
-
-    return api(store).setExports({
-      populateAttribute,
-      cancelPopulateAttribute,
     });
   }
 );
@@ -228,15 +219,12 @@ export const recordAttributeAtom = atom(
 export const recordIdFetcherAtom = atom(
   "record-id-fetcher",
   ({ objectId }: { objectId: string }) => {
-    const fetchRowIds = injectCallback(
-      ({ limit, offset }: { limit: number; offset: number }) => {
+    return api().setExports({
+      fetchRowIds: ({ limit, offset }: { limit: number; offset: number }) => {
         return fetchRecordIds({
           data: { objectId, limit, offset },
         });
       },
-      []
-    );
-
-    return api().setExports({ fetchRowIds });
+    });
   }
 );
