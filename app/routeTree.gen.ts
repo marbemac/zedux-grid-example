@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as SsrBugIdImport } from './routes/ssr-bug.$id'
 import { Route as ObjectsObjectIdImport } from './routes/objects.$objectId'
 import { Route as ObjectsObjectIdRecordIdImport } from './routes/objects.$objectId.$recordId'
 
@@ -20,6 +21,12 @@ import { Route as ObjectsObjectIdRecordIdImport } from './routes/objects.$object
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SsrBugIdRoute = SsrBugIdImport.update({
+  id: '/ssr-bug/$id',
+  path: '/ssr-bug/$id',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -53,6 +60,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsObjectIdImport
       parentRoute: typeof rootRoute
     }
+    '/ssr-bug/$id': {
+      id: '/ssr-bug/$id'
+      path: '/ssr-bug/$id'
+      fullPath: '/ssr-bug/$id'
+      preLoaderRoute: typeof SsrBugIdImport
+      parentRoute: typeof rootRoute
+    }
     '/objects/$objectId/$recordId': {
       id: '/objects/$objectId/$recordId'
       path: '/$recordId'
@@ -80,12 +94,14 @@ const ObjectsObjectIdRouteWithChildren = ObjectsObjectIdRoute._addFileChildren(
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/objects/$objectId': typeof ObjectsObjectIdRouteWithChildren
+  '/ssr-bug/$id': typeof SsrBugIdRoute
   '/objects/$objectId/$recordId': typeof ObjectsObjectIdRecordIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/objects/$objectId': typeof ObjectsObjectIdRouteWithChildren
+  '/ssr-bug/$id': typeof SsrBugIdRoute
   '/objects/$objectId/$recordId': typeof ObjectsObjectIdRecordIdRoute
 }
 
@@ -93,26 +109,42 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/objects/$objectId': typeof ObjectsObjectIdRouteWithChildren
+  '/ssr-bug/$id': typeof SsrBugIdRoute
   '/objects/$objectId/$recordId': typeof ObjectsObjectIdRecordIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/objects/$objectId' | '/objects/$objectId/$recordId'
+  fullPaths:
+    | '/'
+    | '/objects/$objectId'
+    | '/ssr-bug/$id'
+    | '/objects/$objectId/$recordId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/objects/$objectId' | '/objects/$objectId/$recordId'
-  id: '__root__' | '/' | '/objects/$objectId' | '/objects/$objectId/$recordId'
+  to:
+    | '/'
+    | '/objects/$objectId'
+    | '/ssr-bug/$id'
+    | '/objects/$objectId/$recordId'
+  id:
+    | '__root__'
+    | '/'
+    | '/objects/$objectId'
+    | '/ssr-bug/$id'
+    | '/objects/$objectId/$recordId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ObjectsObjectIdRoute: typeof ObjectsObjectIdRouteWithChildren
+  SsrBugIdRoute: typeof SsrBugIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ObjectsObjectIdRoute: ObjectsObjectIdRouteWithChildren,
+  SsrBugIdRoute: SsrBugIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -126,7 +158,8 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/objects/$objectId"
+        "/objects/$objectId",
+        "/ssr-bug/$id"
       ]
     },
     "/": {
@@ -137,6 +170,9 @@ export const routeTree = rootRoute
       "children": [
         "/objects/$objectId/$recordId"
       ]
+    },
+    "/ssr-bug/$id": {
+      "filePath": "ssr-bug.$id.tsx"
     },
     "/objects/$objectId/$recordId": {
       "filePath": "objects.$objectId.$recordId.tsx",
