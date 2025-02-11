@@ -2149,7 +2149,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@zedux/atoms@npm:^1.3.0":
+"@zedux/atoms@npm:1.3.3":
   version: 1.3.3
   resolution: "@zedux/atoms@npm:1.3.3"
   dependencies:
@@ -2165,14 +2165,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@zedux/react@npm:1.3.0":
-  version: 1.3.0
-  resolution: "@zedux/react@npm:1.3.0"
+"@zedux/react@npm:1.3.3":
+  version: 1.3.3
+  resolution: "@zedux/react@npm:1.3.3"
   dependencies:
-    "@zedux/atoms": "npm:^1.3.0"
+    "@zedux/atoms": "npm:1.3.3"
   peerDependencies:
     react: ">=18.0.0"
-  checksum: 10c0/9b277be6996fe16aa3cef8e3cae48208dc46611fc8c59b2e6387f53c86be5a5cd897c575c3b815c8dfd483a3466e3040e9c0dbfe03634d77f622373cd8e086d2
+  checksum: 10c0/98ecdf2257e1dc2b9069fa271b50969dd214d963d82251d125dcbbb575aff506ae5ee03d33e9f8d579a6dfc445c57266894e625c67d4b0fbadfa587a5cba2f78
   languageName: node
   linkType: hard
 
@@ -6942,7 +6942,7 @@ __metadata:
     "@types/react": "npm:19.0.8"
     "@types/react-dom": "npm:19.0.3"
     "@types/react-window": "npm:1.8.8"
-    "@zedux/react": "npm:1.3.0"
+    "@zedux/react": "npm:1.3.3"
     autoprefixer: "npm:^10.4.20"
     postcss: "npm:^8.4.49"
     react: "npm:19.0.0"

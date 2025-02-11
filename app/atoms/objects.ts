@@ -11,7 +11,7 @@ export const objectFetcherAtom = atom(
   ({ objectId }: { objectId: string }) => {
     const objectApi = injectPromise(
       () => fetchObjectDefinition({ data: objectId }),
-      []
+      [objectId]
     );
 
     return objectApi;

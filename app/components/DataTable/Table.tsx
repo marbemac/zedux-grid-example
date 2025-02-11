@@ -44,7 +44,9 @@ export const DataTable = ({
   objectId: string;
   rowIdFetcher: DataTableRowIdFetcher;
 }) => {
-  const objectInstance = useAtomInstance(objectFetcherAtom, [{ objectId }]);
+  const objectInstance = useAtomInstance(objectFetcherAtom, [{ objectId }], {
+    suspend: false,
+  });
   const dtInstance = useAtomInstance(dataTableAtom, [
     { objectId, rowIdFetcher },
   ]);

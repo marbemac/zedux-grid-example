@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useAtomInstance } from "@zedux/react";
+import { Suspense } from "react";
 import { recordIdFetcherAtom } from "~/atoms/records";
 
 import { DataTable } from "~/components/DataTable";
@@ -16,7 +17,9 @@ function ObjectComponent() {
   return (
     <div className="h-screen flex">
       <div className="flex-1 overflow-hidden">
-        <DataTable objectId={objectId} rowIdFetcher={rowIdFetcher} />
+        <Suspense fallback={<div>Loading...</div>}>
+          <DataTable objectId={objectId} rowIdFetcher={rowIdFetcher} />
+        </Suspense>
       </div>
 
       <Outlet />
