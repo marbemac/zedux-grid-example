@@ -97,7 +97,9 @@ const GridInner = forwardRef(
   ) => {
     const renderedCursor = useAtomInstance(renderedCursorAtom);
 
-    renderedCursor.exports.updateFromChildren(children);
+    useEffect(() => {
+      renderedCursor.exports.updateFromChildren(children);
+    }, [children, renderedCursor.exports]);
 
     return (
       <div ref={ref} {...rest}>

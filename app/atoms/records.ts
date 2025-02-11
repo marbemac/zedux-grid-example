@@ -162,28 +162,25 @@ export const recordAttributeAtom = atom(
 
     const records = injectAtomInstance(recordsAtom, [{ objectId }]);
 
-    const populate = injectCallback(
-      (force = false) => {
-        const { value, version, populatedAt } = store.getState();
+    const populate = injectCallback((force = false) => {
+      const { value, version, populatedAt } = store.getState();
 
-        /**
-         * Consider the value stale if it was populated more than X seconds ago, and refetch it.
-         */
-        const isStale =
-          populatedAt && Date.now() - STALE_DATA_THRESHOLD > populatedAt;
+      /**
+       * Consider the value stale if it was populated more than X seconds ago, and refetch it.
+       */
+      const isStale =
+        populatedAt && Date.now() - STALE_DATA_THRESHOLD > populatedAt;
 
-        if (!force && value !== undefined && !isStale) {
-          return;
-        }
+      if (!force && value !== undefined && !isStale) {
+        return;
+      }
 
-        records.exports.populateAttribute(recordId, columnId);
-      },
-      [store, records]
-    );
+      records.exports.populateAttribute(recordId, columnId);
+    }, []);
 
     const cancelPopulate = injectCallback(() => {
       records.exports.cancelPopulateAttribute(recordId, columnId);
-    }, [records]);
+    }, []);
 
     const setValue = injectCallback((value: string) => {
       store.setState((s) => ({
