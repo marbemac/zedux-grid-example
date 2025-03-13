@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAtomInstance, useAtomSelector, useAtomValue } from "@zedux/react";
+import { useAtomInstance, useAtomValue } from "@zedux/react";
 import { useEffect } from "react";
 
 import { getObjectColumns } from "~/atoms/objects";
@@ -15,10 +15,10 @@ function ObjectRecordComponent() {
 
   const activeRecordId = useAtomInstance(activeRecordIdAtom);
   useEffect(() => {
-    activeRecordId.setState(recordId);
+    activeRecordId.set(recordId);
 
     return () => {
-      activeRecordId.setState(null);
+      activeRecordId.set(null);
     };
   }, [recordId]);
 
@@ -61,7 +61,7 @@ const RecordPanelAttributes = ({
   objectId: string;
   recordId: string;
 }) => {
-  const columns = useAtomSelector(getObjectColumns, { objectId });
+  const columns = useAtomValue(getObjectColumns, [{ objectId }]);
 
   return columns.map((column) => (
     <RecordPanelAttribute

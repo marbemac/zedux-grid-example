@@ -3,7 +3,6 @@ import {
   AtomProvider,
   useAtomContext,
   useAtomInstance,
-  useAtomSelector,
   useAtomValue,
 } from "@zedux/react";
 import { forwardRef, memo, useEffect } from "react";
@@ -17,19 +16,17 @@ import { twJoin } from "tailwind-merge";
 import {
   getObjectColumnAtIndex,
   getObjectColumns,
-  objectColumnsFromInstance,
   objectFetcherAtom,
 } from "~/atoms/objects";
 import {
   dataTableAtom,
   dataTableCellAtom,
-  getRenderedMaxRow,
-  getRenderedMinRow,
   getRowIdAtIndex,
   getRowIdsPopulated,
   getTotalRowCount,
   objectIdFromInstance,
   renderedCursorAtom,
+  rowIdAtIndexAtom,
   type DataTableRowIdFetcher,
 } from "./atoms";
 import { isRecordActive } from "~/atoms/records";
@@ -51,9 +48,9 @@ export const DataTable = ({
     { objectId, rowIdFetcher },
   ]);
 
-  const columns = useAtomSelector(getObjectColumns, { objectId });
-  const totalRowCount = useAtomSelector(getTotalRowCount, dtInstance);
-  const rowIdsPopulated = useAtomSelector(getRowIdsPopulated, dtInstance);
+  const columns = useAtomValue(getObjectColumns, [{ objectId }]);
+  const totalRowCount = useAtomValue(getTotalRowCount, [dtInstance]);
+  const rowIdsPopulated = useAtomValue(getRowIdsPopulated, [dtInstance]);
 
   if (!rowIdsPopulated) {
     return <div className="p-5">Loading row ids...</div>;
@@ -124,9 +121,11 @@ const DTHeaders = () => {
    * ..edit.. ah I see, need a separate selector that accepts specific instance..
    *
    * https://omnistac.github.io/zedux/docs/walkthrough/react-context#using-selectors
+   *
+   * @ANSWER Yes or use a union parameter type. I've switched to that approach.
    */
-  // const columns = useAtomSelector(objectColumns, objectFetcher);
-  const columns = useAtomSelector(objectColumnsFromInstance, objectFetcher);
+  // const columns = useAtomValue(objectColumns, [objectFetcher]);
+  const columns = useAtomValue(getObjectColumns, [{ objectFetcher }]);
 
   const [firstColumn, ...restColumns] = columns;
 
@@ -165,13 +164,18 @@ const DTHeaderCell = ({
 
 const DTPinnedColumn = () => {
   const dtInstance = useAtomContext(dataTableAtom, true);
-  const objectId = useAtomSelector(objectIdFromInstance, dtInstance);
-  const minRow = useAtomSelector(getRenderedMinRow);
-  const maxRow = useAtomSelector(getRenderedMaxRow);
-  const column = useAtomSelector(getObjectColumnAtIndex, {
-    objectId,
-    index: 0,
-  });
+  const { getRenderedMaxRow, getRenderedMinRow } =
+    useAtomInstance(renderedCursorAtom).exports;
+
+  const objectId = useAtomValue(objectIdFromInstance, [dtInstance]);
+  const minRow = useAtomValue(getRenderedMinRow);
+  const maxRow = useAtomValue(getRenderedMaxRow);
+  const column = useAtomValue(getObjectColumnAtIndex, [
+    {
+      objectId,
+      index: 0,
+    },
+  ]);
 
   const width = column?.width || 100;
 
@@ -234,21 +238,35 @@ const DTCell = ({
 }: GridChildComponentProps) => {
   const dtInstance = useAtomContext(dataTableAtom, true);
 
-  const rowId = useAtomSelector(getRowIdAtIndex, {
-    instance: dtInstance,
-    index: rowIndex,
-  });
+  /**
+   * @NOTE (see below answer) I've switched this hook to use an atom that runs
+   * the effect to `populateRowIds`
+   */
+  const rowId = useAtomValue(rowIdAtIndexAtom, [
+    {
+      instance: dtInstance,
+      index: rowIndex,
+    },
+  ]);
 
   /**
    * If we haven't loaded the rowIds for this bucket of rows yet, populate them.
    *
-   * @QUESTION would be nice to get this useEffect out of the component, but not sure how. Not end of the world though.
+   * @QUESTION would be nice to get this useEffect out of the component, but not
+   * sure how. Not end of the world though.
+   *
+   * @ANSWER an atom hook should be all you need. I'd turn the `getRowIdAtIndex`
+   * selector into an atom that calls `populateRowIds` in an `injectEffect`.
+   * Then the above `useAtomValue` hook does all the work; you can delete this
+   * effect.
+   *
+   * I've switched to that approach.
    */
-  useEffect(() => {
-    if (!rowId) {
-      dtInstance.exports.populateRowIds(rowIndex);
-    }
-  }, [rowId, rowIndex]);
+  // useEffect(() => {
+  //   if (!rowId) {
+  //     dtInstance.exports.populateRowIds(rowIndex);
+  //   }
+  // }, [rowId, rowIndex]);
 
   const content = rowId ? (
     <DTCellContent
@@ -260,7 +278,7 @@ const DTCell = ({
     "..."
   );
 
-  const isActive = useAtomSelector(isRecordActive, { recordId: rowId });
+  const isActive = useAtomValue(isRecordActive, [{ recordId: rowId }]);
 
   const className = twJoin(
     "flex items-center border-b border-r px-2 gap-1 z-0",

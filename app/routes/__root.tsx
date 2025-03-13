@@ -1,7 +1,11 @@
-import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+} from "@tanstack/react-router";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import { Meta, Scripts } from "@tanstack/start";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
@@ -48,7 +52,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html className="dark">
       <head>
-        <Meta />
+        <HeadContent />
       </head>
       <body>
         <Providers>

@@ -1,16 +1,18 @@
 import {
   api,
   atom,
-  createStore,
+  AtomTemplate,
+  Ecosystem,
   injectAtomInstance,
-  injectAtomSelector,
+  injectAtomValue,
   injectCallback,
   injectEffect,
+  injectMappedSignal,
   injectRef,
-  injectStore,
+  injectSignal,
   type AnyAtomInstance,
   type AtomGetters,
-  type AtomInstanceType,
+  type NodeOf,
 } from "@zedux/react";
 import { Children } from "react";
 import type { GridChildComponentProps } from "react-window";
@@ -38,7 +40,7 @@ export const dataTableAtom = atom(
     objectId: string;
     rowIdFetcher: DataTableRowIdFetcher;
   }) => {
-    const store = injectStore({
+    const signal = injectSignal({
       objectId,
       rowIdsPopulated: false,
       totalRowCount: 0,
@@ -46,7 +48,15 @@ export const dataTableAtom = atom(
     });
 
     /**
-     * @QUESTION is this the correct way to create stable internal state? some other way?
+     * @QUESTION is this the correct way to create stable internal state? some
+     * other way?
+     *
+     * @ANSWER This is fine. I'd prefer `injectSignal` in case you need to
+     * inspect changes (e.g. for debugging).
+     *
+     * But sometimes a ref is necessary for performance. I've profiled this app
+     * and it's nowhere near bottlenecking. So bottom line: It doesn't matter.
+     * Either's fine.
      */
     const rowIdBucketsBeingPopulated = injectRef(new Set<number>());
 
@@ -71,7 +81,7 @@ export const dataTableAtom = atom(
         offset,
       });
 
-      store.setStateDeep((s) => {
+      signal.mutate((s) => {
         const newRows = [...s.rows];
         for (const rowIndex in rows) {
           const ri = Number(rowIndex);
@@ -93,47 +103,86 @@ export const dataTableAtom = atom(
       void populateRowIds();
     }, []);
 
-    return api(store).setExports({ populateRowIds });
+    return api(signal).setExports({ populateRowIds });
   }
 );
 
 export const objectIdFromInstance = (
   { get }: AtomGetters,
-  instance: AtomInstanceType<typeof dataTableAtom>
+  instance: NodeOf<typeof dataTableAtom>
 ) => get(instance).objectId;
 
 export const getRowIdAtIndex = (
   { get }: AtomGetters,
-  {
+  { instance, index }: { instance: NodeOf<typeof dataTableAtom>; index: number }
+) => get(instance).rows[index];
+
+export const rowIdAtIndexAtom = atom(
+  "row-id-at-index",
+  ({
     instance,
     index,
-  }: { instance: AtomInstanceType<typeof dataTableAtom>; index: number }
-) => get(instance).rows[index];
+  }: {
+    instance: NodeOf<typeof dataTableAtom>;
+    index: number;
+  }) => {
+    const rowId = injectAtomValue(getRowIdAtIndex, [{ instance, index }]);
+
+    injectEffect(() => {
+      if (!rowId) {
+        instance.exports.populateRowIds(index);
+      }
+    }, [index, rowId]);
+
+    return rowId;
+  },
+  { ttl: 0 }
+);
 
 export const getTotalRowCount = (
   { get }: AtomGetters,
-  instance: AtomInstanceType<typeof dataTableAtom>
+  instance: NodeOf<typeof dataTableAtom>
 ) => get(instance).totalRowCount;
 
 export const getRowIdsPopulated = (
   { get }: AtomGetters,
-  instance: AtomInstanceType<typeof dataTableAtom>
+  instance: NodeOf<typeof dataTableAtom>
 ) => get(instance).rowIdsPopulated;
 
 /**
- * @QUESTION how to think about organizing atom "scope/size"? For example, this could go into the dataTableAtom.
- * Any general guidelines re how to think about when to break up atoms into smaller atoms, vs expand the api surface
- * of an existing atom?
+ * @QUESTION how to think about organizing atom "scope/size"? For example, this
+ * could go into the dataTableAtom. Any general guidelines re how to think about
+ * when to break up atoms into smaller atoms, vs expand the api surface of an
+ * existing atom?
+ *
+ * @ANSWER it's mostly down to preference. My rule of thumb is the smaller the
+ * better. Atoms do very well broken up. But in very big, very complex UIs, that
+ * could mean working with hundreds of atoms.
+ *
+ * You can also create wrapper atoms that combine functionality from several
+ * broken-out pieces. Atoms are made to be composable specifically for this -
+ * exports can be merged, promises can be `Promise.all`'d, signals can be
+ * composed with `injectMappedSignal`.
  */
 export const renderedCursorAtom = atom("rendered-cursor", () => {
-  const store = injectStore({
+  const signal = injectSignal({
     minRow: 0,
     maxRow: 0,
     minColumn: 0,
     maxColumn: 0,
   });
 
-  return api(store).setExports({
+  return api(signal).setExports({
+    /**
+     * @NOTE these two exports are selectors. They call `signal.get`, which is
+     * reactive. Pass these exports directly to `ecosystem.get` or
+     * `useAtomValue` to reactively update when only these selected properties
+     * change
+     */
+    getRenderedMaxRow: () => signal.get().maxRow,
+
+    getRenderedMinRow: () => signal.get().minRow,
+
     updateFromChildren: (
       children: React.ReactElement<GridChildComponentProps>[]
     ) => {
@@ -151,19 +200,25 @@ export const renderedCursorAtom = atom("rendered-cursor", () => {
         maxColumn = Math.max(maxColumn, columnIndex);
       });
 
-      store.setState({ minRow, maxRow, minColumn, maxColumn });
+      signal.set({ minRow, maxRow, minColumn, maxColumn });
     },
   });
 });
 
 /**
  * @QUESTION can selectors / "scoped" state be exposed via an atom's api?
+ *
+ * @ANSWER Yes, any atom can export selector functions. I've switched to that
+ * approach (see `renderedCursorAtom` above).
+ *
+ * It's also possible to create atom factories or extend the `AtomTemplate`
+ * class to attach these selectors to the template rather than an instance.
  */
-export const getRenderedMinRow = ({ get }: AtomGetters) =>
-  get(renderedCursorAtom).minRow;
+// export const getRenderedMinRow = ({ get }: AtomGetters) =>
+//   get(renderedCursorAtom).minRow;
 
-export const getRenderedMaxRow = ({ get }: AtomGetters) =>
-  get(renderedCursorAtom).maxRow;
+// export const getRenderedMaxRow = ({ get }: AtomGetters) =>
+//   get(renderedCursorAtom).maxRow;
 
 export const dataTableCellAtom = atom(
   "data-table-cell",
@@ -176,20 +231,18 @@ export const dataTableCellAtom = atom(
     rowId: string;
     columnIndex: number;
   }) => {
-    const column = injectAtomSelector(getObjectColumnAtIndex, {
-      objectId,
-      index: columnIndex,
-    })!;
+    const column = injectAtomValue(getObjectColumnAtIndex, [
+      {
+        objectId,
+        index: columnIndex,
+      },
+    ])!;
 
     const recordAttribute = injectAtomInstance(recordAttributeAtom, [
       { objectId, recordId: rowId, columnId: column.id },
     ]);
 
-    const composedStore = injectStore(() =>
-      createStore({ attribute: recordAttribute.store })
-    );
-
-    composedStore.use({ attribute: recordAttribute.store });
+    const composedSignal = injectMappedSignal({ attribute: recordAttribute });
 
     injectEffect(() => {
       recordAttribute.exports.populate();
@@ -199,7 +252,7 @@ export const dataTableCellAtom = atom(
       };
     }, [recordAttribute]);
 
-    return composedStore;
+    return composedSignal;
   },
   {
     ttl: 0,

@@ -2,7 +2,7 @@
 
 // import { scan } from "react-scan";
 import { hydrateRoot } from "react-dom/client";
-import { StartClient } from "@tanstack/start";
+import { StartClient } from "@tanstack/react-start";
 import { createRouter } from "./router";
 // import { useEffect } from "react";
 
