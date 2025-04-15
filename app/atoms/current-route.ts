@@ -2,17 +2,20 @@ import { type AnyRouter } from "@tanstack/react-router";
 import {
   atom,
   type Ecosystem,
-  injectAtomGetters,
+  injectEcosystem,
   injectEffect,
-  injectStore,
+  injectSignal,
 } from "@zedux/react";
 
 export const currentRouteAtom = atom("current-route", () => {
-  const { router } = (
-    injectAtomGetters().ecosystem as Ecosystem<{ router: AnyRouter }>
-  ).context;
+  /**
+   * @NOTE I'd create a custom injector that checks if the current ecosystem's
+   * context matches the expected shape and throws a user-friendly error if not.
+   */
+  const { router } = (injectEcosystem() as Ecosystem<{ router: AnyRouter }>)
+    .context;
 
-  const store = injectStore({
+  const signal = injectSignal({
     routeId: router.state.matches[router.state.matches.length - 1]!.routeId,
     params: router.state.matches[0]!.params,
     search: router.state.matches[0]!.search,
@@ -20,7 +23,7 @@ export const currentRouteAtom = atom("current-route", () => {
 
   injectEffect(() => {
     return router.subscribe("onLoad", () => {
-      store.setState({
+      signal.set({
         routeId: router.state.matches[router.state.matches.length - 1]!.routeId,
         params: router.state.matches[0]!.params,
         search: router.state.matches[0]!.search,
@@ -28,5 +31,5 @@ export const currentRouteAtom = atom("current-route", () => {
     });
   }, [router]);
 
-  return store;
+  return signal;
 });

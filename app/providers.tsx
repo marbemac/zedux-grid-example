@@ -9,14 +9,14 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
 
   const ecosystem = useMemo(
     () =>
-      createEcosystem({
-        id: "root",
+      // for debugging: make the ecosystem globally accessible
+      ((globalThis as any).ecosystem = createEcosystem({
         ssr: typeof window === "undefined",
         context: {
           router,
           queryClient,
         },
-      }),
+      })),
     [router, queryClient]
   );
 
