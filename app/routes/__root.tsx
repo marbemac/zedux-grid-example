@@ -5,7 +5,7 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
@@ -28,6 +28,11 @@ export const Route = createRootRouteWithContext<{
       },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
+    scripts: [
+      {
+        src: "https://unpkg.com/react-scan/dist/auto.global.js",
+      },
+    ],
   }),
   errorComponent: (props) => {
     return (

@@ -204,7 +204,7 @@ const intervalAtom = atom("interval", () => {
   injectEffect(() => {
     const intervalId = setInterval(() => {
       signal.set((state) => (state + 1) % 2);
-    }, 1000);
+    }, 2000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -303,6 +303,11 @@ export const recordAttributeAtom = atom(
         cancelPopulate();
         cleanupListener();
       };
+      /**
+       * Atom instances aren't technically stable references. They can be force-destroyed. The ecosystem can also be .reset(),
+       * which force-destroys all atom instances, recreating them from the leaves (typically React components).
+       * If the intervalAtom's single instance is force-destroyed, this atom would reevaluate, creating a new intervalInstance.
+       */
     }, [intervalInstance]);
 
     /**
